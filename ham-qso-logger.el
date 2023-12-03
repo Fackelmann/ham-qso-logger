@@ -125,3 +125,6 @@ This prepares the interface for a new QSO entry which is written to LOGFILE-PATH
   (widget-forward 1))
 
 (setup-qso-widget qso-logfile-path)
+
+(provide 'ham-qso-logger)
+;;; ham-qso-logger.el ends here
