@@ -16,7 +16,8 @@
 (require 'wid-edit)
 
 ;;TODO:
-;; - Add My Station custom vars
+;; - Add My Station custom vars (OPERATOR)
+;; - Add header
 
 ;;Wanted features:
 ;; - Edit existing QSO
@@ -27,6 +28,11 @@
 
 (defcustom qso-logfile-path "~/qso-log.adif"
   "Path to the QSO logfile."
+  :type 'string
+  :group 'qso-logger)
+
+(defcustom qso-logfile-operator "YOURCALL"
+  "Operator callsign to use in the QSOs."
   :type 'string
   :group 'qso-logger)
 
@@ -61,11 +67,13 @@ FIELD is the associated attribute in the logfile for the field."
 Collect data from the form fields in the W-LIST list of widgets,
 form the QSO string, and append it to the log file in LOGFILE-PATH.
 After writing, refresh the QSO entry form."
-  (let ((value "\n"))
+  (let ((value (format "\n<OPERATOR:%d>%s" (length qso-logfile-operator) qso-logfile-operator)))
     (dolist (elt w-list value)
       (setq value (concat value "<" (adif-item-field elt) ":" (number-to-string (length (widget-value (adif-item-widget elt)))) ">" (widget-value (adif-item-widget elt)))))
     (setq value (concat value "<EOR>"))
     (write-region value nil logfile-path 'append))
+  (message "QSO recorded.")
+  (sit-for 2) ;; Waits to show message
   ;; Reload QSO widget
   (ham-qso-logger--setup-qso-widget logfile-path))
 
