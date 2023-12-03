@@ -27,6 +27,13 @@
 ;; - Show and search for existing QSOs
 ;; - Personalize fields
 
+;;; Customization
+
+(defcustom qso-logfile-path "~/qso-log.adif"
+  "Path to the QSO logfile."
+  :type 'string
+  :group 'qso-logger)
+
 ;;; Code:
 (eval-when-compile
   (require 'wid-edit))
@@ -45,14 +52,16 @@
 				    :size size
 				    :format (concat text ": %v "))
 		     :field field))
-(defun write-qso (w-list)
+
+(defun write-qso (w-list logfile-path)
   (let ((value "\n"))
     (dolist (elt w-list value)
       (setq value (concat value "<" (adif-item-field elt) ":" (number-to-string (length (widget-value (adif-item-widget elt)))) ">" (widget-value (adif-item-widget elt)))))
     (setq value (concat value "<EOR>"))
     (alert value)
-    (write-region value nil "~/fileqso" 'append))
-  (add-qso-widget))
+    (write-region value nil logfile-path 'append))
+  ;; Reload QSO widget
+  (add-qso-widget logfile-path))
 
 (defun main-widget ()
   (interactive)
@@ -64,13 +73,13 @@
   (widget-insert "What do you want to do? \n\n")
   (widget-create 'push-button
                  :notify (lambda (&rest ignore)
-                           (add-qso-widget))
+                           (add-qso-widget qso-logfile-path))
                  "Add QSO")
   (use-local-map widget-keymap)
   (widget-setup)
   (widget-forward 1))
 
-(defun add-qso-widget ()
+(defun add-qso-widget (logfile-path)
   (interactive)
   (switch-to-buffer "*Add QSO*")  
   (kill-all-local-variables)
@@ -94,11 +103,11 @@
     (widget-insert "\n")
     (widget-create 'push-button
 		   :notify (lambda (&rest ignore)
-                             (write-qso adif-item-list))
+                             (write-qso adif-item-list logfile-path))
 		   "Records QSO")
     )
   (use-local-map widget-keymap)
   (widget-setup)
   (widget-forward 1))
 
-(add-qso-widget)
+(add-qso-widget qso-logfile-path)
