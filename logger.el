@@ -13,6 +13,7 @@
 ;; TODO better
 
 (require 'widget)
+(require 'wid-edit)
 
 ;;TODO:
 ;; - Follow naming best practices: https://github.com/bbatsov/emacs-lisp-style-guide#naming
@@ -42,28 +43,39 @@
   widget field)
 
 (defun adif-widget-create (text size)
+"Create a single editable field widget with the given TEXT and SIZE."
   (widget-create 'editable-field
 		 :size size
 		 :format (concat text ": %v ")))
 
 (defun adif-item-create (text size field)
-  (adif-item--create :widget 
+"Use `adif-widget-create` to create a widget with given parameters.
+Then encapsulate it in an adif-item struct.
+   
+TEXT is the label for the field.
+SIZE is the width of the field in characters.
+FIELD is the associated attribute in the logfile for the field."
+  (adif-item--create :widget
 		     (widget-create 'editable-field
 				    :size size
 				    :format (concat text ": %v "))
 		     :field field))
 
 (defun write-qso (w-list logfile-path)
+  "Write QSO information to file.
+Collect data from the form fields in the W-LIST list of widgets,
+form the QSO string, and append it to the log file in LOGFILE-PATH.
+After writing, refresh the QSO entry form."
   (let ((value "\n"))
     (dolist (elt w-list value)
       (setq value (concat value "<" (adif-item-field elt) ":" (number-to-string (length (widget-value (adif-item-widget elt)))) ">" (widget-value (adif-item-widget elt)))))
     (setq value (concat value "<EOR>"))
-    (alert value)
     (write-region value nil logfile-path 'append))
   ;; Reload QSO widget
-  (add-qso-widget logfile-path))
+  (setup-qso-widget logfile-path))
 
 (defun main-widget ()
+  "Create the main user interface widget.  UNUSED."
   (interactive)
   (switch-to-buffer "*QSO logger*")
   (kill-all-local-variables)
@@ -72,19 +84,21 @@
   (remove-overlays)
   (widget-insert "What do you want to do? \n\n")
   (widget-create 'push-button
-                 :notify (lambda (&rest ignore)
-                           (add-qso-widget qso-logfile-path))
+                 :notify (lambda (&rest _ignore)
+                           (setup-qso-widget qso-logfile-path))
                  "Add QSO")
   (use-local-map widget-keymap)
   (widget-setup)
   (widget-forward 1))
 
-(defun add-qso-widget (logfile-path)
+(defun setup-qso-widget (logfile-path)
+  "Set up the QSO entry form, clearing all fields.
+This prepares the interface for a new QSO entry which is written to LOGFILE-PATH"
   (interactive)
-  (switch-to-buffer "*Add QSO*")  
+  (switch-to-buffer "*Add QSO*")
   (kill-all-local-variables)
   (let ((inhibit-read-only t))
-    (erase-buffer))  
+    (erase-buffer))
   (remove-overlays)
   (let ((adif-item-list '()))
     ;;  (make-local-variable 'adif-item-list)
@@ -102,7 +116,7 @@
     (push (adif-item-create "Notes" 100 "NOTES") adif-item-list)
     (widget-insert "\n")
     (widget-create 'push-button
-		   :notify (lambda (&rest ignore)
+		   :notify (lambda (&rest _ignore)
                              (write-qso adif-item-list logfile-path))
 		   "Records QSO")
     )
@@ -110,4 +124,4 @@
   (widget-setup)
   (widget-forward 1))
 
-(add-qso-widget qso-logfile-path)
+(setup-qso-widget qso-logfile-path)
