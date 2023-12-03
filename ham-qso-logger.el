@@ -16,17 +16,12 @@
 (require 'wid-edit)
 
 ;;TODO:
-;; - Follow naming best practices: https://github.com/bbatsov/emacs-lisp-style-guide#naming
-;;  - E.g. Naming of private functions
 ;; - Add My Station custom vars
-;; 
-;; - Comment code
-;; - Think of better name
 
 ;;Wanted features:
 ;; - Edit existing QSO
 ;; - Show and search for existing QSOs
-;; - Personalize fields
+;; - Personalize fields (maybe)
 
 ;;; Customization
 
@@ -42,14 +37,14 @@
 (cl-defstruct (adif-item (:constructor adif-item--create))
   widget field)
 
-(defun adif-widget-create (text size)
+(defun ham-qso-logger--adif-widget-create (text size)
 "Create a single editable field widget with the given TEXT and SIZE."
   (widget-create 'editable-field
 		 :size size
 		 :format (concat text ": %v ")))
 
-(defun adif-item-create (text size field)
-"Use `adif-widget-create` to create a widget with given parameters.
+(defun ham-qso-logger--adif-item-create (text size field)
+"Create a widget with given parameters.
 Then encapsulate it in an adif-item struct.
    
 TEXT is the label for the field.
@@ -61,7 +56,7 @@ FIELD is the associated attribute in the logfile for the field."
 				    :format (concat text ": %v "))
 		     :field field))
 
-(defun write-qso (w-list logfile-path)
+(defun ham-qso-logger--write-qso (w-list logfile-path)
   "Write QSO information to file.
 Collect data from the form fields in the W-LIST list of widgets,
 form the QSO string, and append it to the log file in LOGFILE-PATH.
@@ -72,7 +67,7 @@ After writing, refresh the QSO entry form."
     (setq value (concat value "<EOR>"))
     (write-region value nil logfile-path 'append))
   ;; Reload QSO widget
-  (setup-qso-widget logfile-path))
+  (ham-qso-logger--setup-qso-widget logfile-path))
 
 (defun main-widget ()
   "Create the main user interface widget.  UNUSED."
@@ -85,13 +80,13 @@ After writing, refresh the QSO entry form."
   (widget-insert "What do you want to do? \n\n")
   (widget-create 'push-button
                  :notify (lambda (&rest _ignore)
-                           (setup-qso-widget qso-logfile-path))
+                           (ham-qso-logger--setup-qso-widget qso-logfile-path))
                  "Add QSO")
   (use-local-map widget-keymap)
   (widget-setup)
   (widget-forward 1))
 
-(defun setup-qso-widget (logfile-path)
+(defun ham-qso-logger--setup-qso-widget (logfile-path)
   "Set up the QSO entry form, clearing all fields.
 This prepares the interface for a new QSO entry which is written to LOGFILE-PATH"
   (interactive)
@@ -102,29 +97,29 @@ This prepares the interface for a new QSO entry which is written to LOGFILE-PATH
   (remove-overlays)
   (let ((adif-item-list '()))
     ;;  (make-local-variable 'adif-item-list)
-    (push (adif-item-create "Callsign" 10 "CALL") adif-item-list)
-    (push (adif-item-create "Freq" 8 "FREQ") adif-item-list)
+    (push (ham-qso-logger--adif-item-create "Callsign" 10 "CALL") adif-item-list)
+    (push (ham-qso-logger--adif-item-create "Freq" 8 "FREQ") adif-item-list)
     (widget-insert "\n")
-    (push (adif-item-create "Start time" 6 "TIME_ON") adif-item-list)
-    (push (adif-item-create "Stop Time" 6 "TIME_OFF") adif-item-list)
-    (push (adif-item-create "Mode" 10 "MODE") adif-item-list)
+    (push (ham-qso-logger--adif-item-create "Start time" 6 "TIME_ON") adif-item-list)
+    (push (ham-qso-logger--adif-item-create "Stop Time" 6 "TIME_OFF") adif-item-list)
+    (push (ham-qso-logger--adif-item-create "Mode" 10 "MODE") adif-item-list)
     (widget-insert "\n")
-    (push (adif-item-create "QTH" 20 "QTH") adif-item-list)
-    (push (adif-item-create "State" 2 "STATE") adif-item-list)
-    (push (adif-item-create "Country" 20 "COUNTRY") adif-item-list)
+    (push (ham-qso-logger--adif-item-create "QTH" 20 "QTH") adif-item-list)
+    (push (ham-qso-logger--adif-item-create "State" 2 "STATE") adif-item-list)
+    (push (ham-qso-logger--adif-item-create "Country" 20 "COUNTRY") adif-item-list)
     (widget-insert "\n-----\n")
-    (push (adif-item-create "Notes" 100 "NOTES") adif-item-list)
+    (push (ham-qso-logger--adif-item-create "Notes" 100 "NOTES") adif-item-list)
     (widget-insert "\n")
     (widget-create 'push-button
 		   :notify (lambda (&rest _ignore)
-                             (write-qso adif-item-list logfile-path))
+                             (ham-qso-logger--write-qso adif-item-list logfile-path))
 		   "Records QSO")
     )
   (use-local-map widget-keymap)
   (widget-setup)
   (widget-forward 1))
 
-(setup-qso-widget qso-logfile-path)
+(ham-qso-logger--setup-qso-widget qso-logfile-path)
 
 (provide 'ham-qso-logger)
 ;;; ham-qso-logger.el ends here
