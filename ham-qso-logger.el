@@ -76,11 +76,10 @@ FIELD is the associated attribute in the logfile for the field."
       (write-region (point-min) (point-max) logfile-path))
     (message "ADIF header written to %s" logfile-path)))
 
-(defun ham-qso-logger--write-qso (w-list logfile-path)
+(defun ham-qso-logger-write-qso (qso-data logfile-path)
   "Write QSO information to file.
-Collect data from the form fields in the W-LIST list of widgets,
-form the QSO string, and append it to the log file in LOGFILE-PATH.
-After writing, refresh the QSO entry form."
+QSO-DATA is an alist of (field . value) pairs.
+LOGFILE-PATH is the log file path where the QSO should be appended."
   (when (or (not (file-exists-p logfile-path))
 	    (zerop (nth 7 (file-attributes logfile-path))))
     (ham-qso-logger--write-adif-header logfile-path))
@@ -89,20 +88,17 @@ After writing, refresh the QSO entry form."
     (when (> (length qso-logfile-operator) 0)
       (insert (format "<OPERATOR:%d>%s" (length qso-logfile-operator) qso-logfile-operator)))
     ;; Insert other QSO data fields with non-zero length.
-    (dolist (item w-list)
-      (let ((field-value (widget-value (adif-item-widget item))))
-        ;; Only record the field if it has a non-zero length.
-        (when (> (length field-value) 0)
-          (insert (format "<%s:%d>%s"
-                          (adif-item-field item)
-                          (length field-value)
-                          field-value)))))
+    (dolist (item qso-data)
+      (let ((field (car item))
+            (field-value (cdr item)))
+	;; Only record the field if it has a non-zero length.
+	(when (> (length field-value) 0)
+          (insert (format "<%s:%d>%s" field (length field-value) field-value)))))
     (insert "<EOR>\n")
     (write-region (point-min) (point-max) logfile-path 'append))
-
   (message "QSO recorded.")
   (sit-for 2) ;; Waits to show message
-  ;; Reload QSO widget
+  ;; Reload QSO widget for next entry
   (ham-qso-logger--setup-qso-widget logfile-path))
 
 (defun main-widget ()
@@ -147,9 +143,13 @@ This prepares the interface for a new QSO entry which is written to LOGFILE-PATH
     (widget-insert "\n")
     (widget-create 'push-button
 		   :notify (lambda (&rest _ignore)
-                             (ham-qso-logger--write-qso adif-item-list logfile-path))
-		   "Records QSO")
-    )
+			     (let (qso-data)
+                               (dolist (item adif-item-list)
+				 (let ((field (adif-item-field item))
+                                       (value (widget-value (adif-item-widget item))))
+				   (push (cons field value) qso-data)))
+                               (ham-qso-logger-write-qso (nreverse qso-data) logfile-path)))
+		   "Record QSO"))
   (use-local-map widget-keymap)
   (widget-setup)
   (widget-forward 1))
