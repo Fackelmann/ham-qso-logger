@@ -5,15 +5,11 @@
 ;; Author: Daniel Gonzalez Plaza <kk6gqj@danielgplaza.com>
 ;; Version: 1.0.0
 ;; Keywords: radio, adif, files, qso, logger, log
-;; URL: https://TODO_GITHUB
+;; URL: https://github.com/Fackelmann/ham-qso-logger
 
 ;;; Commentary:
 
-;; This pacakge provides an interactive logger for ham radio contacts.  It writes in ADIF file.
-;; TODO better
-
-(require 'widget)
-(require 'wid-edit)
+;; This package provides an interactive logger for ham radio contacts, following the ADIF format.
 
 ;;TODO:
 ;; - Add field validation
@@ -36,6 +32,10 @@
   :group 'qso-logger)
 
 ;;; Code:
+
+(require 'widget)
+(require 'wid-edit)
+
 (eval-when-compile
   (require 'wid-edit))
 
