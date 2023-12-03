@@ -16,7 +16,7 @@
 (require 'wid-edit)
 
 ;;TODO:
-;; - Add header
+;; - Add field validation
 
 ;;Wanted features:
 ;; - Edit existing QSO
@@ -61,16 +61,33 @@ FIELD is the associated attribute in the logfile for the field."
 				    :format (concat text ": %v "))
 		     :field field))
 
+(defun ham-qso-logger--write-adif-header (logfile-path)
+  "Write ADIF header to the log file specified by LOGFILE-PATH."
+  (let ((adif-version "3.1.4") ; Specify the ADIF version being used
+        (program-id "HAM-QSO-LOGGER") ; Your program's ID
+        (program-version "1.0") ; Your program's version
+        (current-time (format-time-string "%Y%m%d %H%M%S" (current-time) t))) ; Current UTC time
+    (with-temp-buffer
+      (insert (format "<ADIF_VER:%d>%s" (length adif-version) adif-version))
+      (insert (format "<PROGRAMID:%d>%s" (length program-id) program-id))
+      (insert (format "<PROGRAMVERSION:%d>%s" (length program-version) program-version))
+      (insert (format "<CREATED_TIMESTAMP:%d>%s" (length current-time) current-time))
+      (insert "<EOH>\n") ; End Of Header marker
+      (write-region (point-min) (point-max) logfile-path))
+    (message "ADIF header written to %s" logfile-path)))
+
 (defun ham-qso-logger--write-qso (w-list logfile-path)
   "Write QSO information to file.
 Collect data from the form fields in the W-LIST list of widgets,
 form the QSO string, and append it to the log file in LOGFILE-PATH.
 After writing, refresh the QSO entry form."
+  (when (or (not (file-exists-p logfile-path))
+	    (zerop (nth 7 (file-attributes logfile-path))))
+    (ham-qso-logger--write-adif-header logfile-path))
   (with-temp-buffer
     ;; Insert the OPERATOR field if it's non-zero length.
     (when (> (length qso-logfile-operator) 0)
       (insert (format "<OPERATOR:%d>%s" (length qso-logfile-operator) qso-logfile-operator)))
-
     ;; Insert other QSO data fields with non-zero length.
     (dolist (item w-list)
       (let ((field-value (widget-value (adif-item-widget item))))
@@ -115,7 +132,6 @@ This prepares the interface for a new QSO entry which is written to LOGFILE-PATH
     (erase-buffer))
   (remove-overlays)
   (let ((adif-item-list '()))
-    ;;  (make-local-variable 'adif-item-list)
     (push (ham-qso-logger--adif-item-create "Callsign" 10 "CALL") adif-item-list)
     (push (ham-qso-logger--adif-item-create "Freq" 8 "FREQ") adif-item-list)
     (widget-insert "\n")
