@@ -16,7 +16,6 @@
 (require 'wid-edit)
 
 ;;TODO:
-;; - Add My Station custom vars (OPERATOR)
 ;; - Add header
 
 ;;Wanted features:
@@ -44,13 +43,13 @@
   widget field)
 
 (defun ham-qso-logger--adif-widget-create (text size)
-"Create a single editable field widget with the given TEXT and SIZE."
+  "Create a single editable field widget with the given TEXT and SIZE."
   (widget-create 'editable-field
 		 :size size
 		 :format (concat text ": %v ")))
 
 (defun ham-qso-logger--adif-item-create (text size field)
-"Create a widget with given parameters.
+  "Create a widget with given parameters.
 Then encapsulate it in an adif-item struct.
    
 TEXT is the label for the field.
@@ -67,11 +66,23 @@ FIELD is the associated attribute in the logfile for the field."
 Collect data from the form fields in the W-LIST list of widgets,
 form the QSO string, and append it to the log file in LOGFILE-PATH.
 After writing, refresh the QSO entry form."
-  (let ((value (format "\n<OPERATOR:%d>%s" (length qso-logfile-operator) qso-logfile-operator)))
-    (dolist (elt w-list value)
-      (setq value (concat value "<" (adif-item-field elt) ":" (number-to-string (length (widget-value (adif-item-widget elt)))) ">" (widget-value (adif-item-widget elt)))))
-    (setq value (concat value "<EOR>"))
-    (write-region value nil logfile-path 'append))
+  (with-temp-buffer
+    ;; Insert the OPERATOR field if it's non-zero length.
+    (when (> (length qso-logfile-operator) 0)
+      (insert (format "<OPERATOR:%d>%s" (length qso-logfile-operator) qso-logfile-operator)))
+
+    ;; Insert other QSO data fields with non-zero length.
+    (dolist (item w-list)
+      (let ((field-value (widget-value (adif-item-widget item))))
+        ;; Only record the field if it has a non-zero length.
+        (when (> (length field-value) 0)
+          (insert (format "<%s:%d>%s"
+                          (adif-item-field item)
+                          (length field-value)
+                          field-value)))))
+    (insert "<EOR>\n")
+    (write-region (point-min) (point-max) logfile-path 'append))
+
   (message "QSO recorded.")
   (sit-for 2) ;; Waits to show message
   ;; Reload QSO widget
