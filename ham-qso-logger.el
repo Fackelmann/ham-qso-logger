@@ -42,6 +42,16 @@
 (cl-defstruct (adif-item (:constructor adif-item--create))
   widget field)
 
+
+(defun ham-qso-logger--adif-utc-button-create (item)
+  "Create a button that, when clicked, populates the adif-item ITEM with a current utc timestamp"
+  (widget-create 'push-button
+		 :notify (lambda (&rest _ignore)
+			   (widget-value-set (adif-item-widget item)
+					     (format-time-string "%H%M%S" (current-time) t))
+			   (widget-setup))
+		 "Now"))
+
 (defun ham-qso-logger--adif-widget-create (text size)
   "Create a single editable field widget with the given TEXT and SIZE."
   (widget-create 'editable-field
@@ -130,10 +140,13 @@ This prepares the interface for a new QSO entry which is written to LOGFILE-PATH
   (let ((adif-item-list '()))
     (push (ham-qso-logger--adif-item-create "Callsign" 10 "CALL") adif-item-list)
     (push (ham-qso-logger--adif-item-create "Freq" 8 "FREQ") adif-item-list)
+    (push (ham-qso-logger--adif-item-create "Mode" 10 "MODE") adif-item-list)
     (widget-insert "\n")
     (push (ham-qso-logger--adif-item-create "Start time" 6 "TIME_ON") adif-item-list)
+    (ham-qso-logger--adif-utc-button-create (nth 0 adif-item-list))
+    (widget-insert "\n")
     (push (ham-qso-logger--adif-item-create "Stop Time" 6 "TIME_OFF") adif-item-list)
-    (push (ham-qso-logger--adif-item-create "Mode" 10 "MODE") adif-item-list)
+    (ham-qso-logger--adif-utc-button-create (nth 0 adif-item-list))
     (widget-insert "\n")
     (push (ham-qso-logger--adif-item-create "QTH" 20 "QTH") adif-item-list)
     (push (ham-qso-logger--adif-item-create "State" 2 "STATE") adif-item-list)
